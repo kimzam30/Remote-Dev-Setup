@@ -1,57 +1,70 @@
 # Remote-Dev-Setup with Private NAS by kimzam
-**Remote Programming** With Visual Studio Code (VSC) with **Private Windows NAS**
- 
- A resilient, secure remote development environment allowing full coding capabilities and NAS access from anywhere in the world, hosted on a Windows machine.
 
-![Windows](https://img.shields.io/badge/OS-Windows_11-blue?logo=windows)
-![Tailscale](https://img.shields.io/badge/Network-Tailscale-orange?logo=tailscale)
-![Python](https://img.shields.io/badge/Dashboard-Python_Flask-yellow?logo=python)
-![VS Code](https://img.shields.io/badge/Editor-VS_Code-blue?logo=visualstudiocode)
+**Remote Programming** With Visual Studio Code (VSC) on a **Private Windows NAS**
 
- ## Architecture
- - Host Machine (Main machine that runs the code) : Windows Desktop (Always ON)
- - Network : Tailscale Mesh VPN (Direct P2P Connection)
- - Code Access : VS Code Remote Tunnels 
- - Backup Access : OpenSSH Server (Windows Native)
- - File Access : FileBrowser (Self-hosted web GUI)
+A resilient, secure remote development environment allowing full coding capabilities and NAS access from anywhere in the world, hosted on a Windows machine.
 
- ## 🛠 Configuration Steps 
- ### 1. Network & Security
- - Install Tailscale 
- - **FIX** (optional): Disabled SMB Multichannel to prevent throttling.
- ```Set-SmbServerConfiguration -Enable Multichannel $false -Force```
-- **Firewall** : Whitelisted Tailscale subnet (100.0.x) for SMB traffic.
+[![Windows](https://img.shields.io/badge/OS-Windows_11-blue?logo=windows)](https://microsoft.com)
+[![Tailscale](https://img.shields.io/badge/Network-Tailscale-orange?logo=tailscale)](https://tailscale.com)
+[![SSH](https://img.shields.io/badge/Access-OpenSSH-black?logo=openssh)](https://www.openssh.com/)
+[![C++](https://img.shields.io/badge/Language-C++-00599C?logo=c%2B%2B)](https://isocpp.org/)
+[![Python](https://img.shields.io/badge/Dashboard-Python_Flask-yellow?logo=python)](https://python.org)
 
-### 2. SSH Backup (Just In Case Layer)
-- Enabled Windows OpenSSH Server via Optional Features on Windows Setting .
-- **Service** : Set 'sshd' to Automatic startup .
-- **Trap Avoided** : Created a local user ```nas_user``` to bypass Microsoft Account authentication issues over SSH
+## Architecture
 
-### 3. Web NAS (FileBrowser)
-- Tool : [FileBrowser] (https://filebrowser.org)
-- **Persistence** : Used NSSM (Non-Sucking Service Manager) to run the binary as a background Windows service
-- **Command** : ```.\filebrowser.exe -r "D:\Files" -a 0.0.0.0 -p 8080```
+* **Host Machine:** Windows Desktop (Always ON)
+* **Network:** Tailscale Mesh VPN (Direct P2P Connection)
+* **Primary Code Access:** VS Code Remote SSH (Low Latency)
+* **Backup Access:** VS Code Tunnels (Web-based Fallback)
+* **Development Environment:** * **C++:** MSYS2 / MinGW-w64 (GCC & GDB)
+    * **Terminal:** PowerShell Core + Starship Prompt
+* **File Access:** FileBrowser (Self-hosted web GUI)
 
-### 4. Server Health Dashboard
-- **Location**: ```/dashboard``` folder
-- **Features**: Real-time CPU/RAM usage , Service Status checks (SSH & NAS)
-- **Access**: ```http://< tailscale-ip >:5000```
+## 🛠 Configuration Steps
+
+### 1. Network & Security
+* **VPN:** Installed Tailscale for secure, zero-config networking.
+* **Firewall:** Whitelisted Tailscale subnet (`100.x.x.x`) for seamless access.
+* **Performance:** Disabled SMB Multichannel to prevent throttling:
+    `Set-SmbServerConfiguration -Enable Multichannel $false -Force`
+
+### 2. SSH Access (Primary)
+* **Service:** Enabled Windows OpenSSH Server (`sshd`) with automatic startup.
+* **Authentication:** Configured **Ed25519 SSH Keys** for password-less, secure login.
+* **Permissions:** Fixed "Administrators" permission conflicts in `sshd_config` to allow key-based auth.
+
+### 3. Development Tools
+* **C++ Toolchain:** Installed **MSYS2 (UCRT64)** to provide `g++` and `gdb` on Windows.
+* **Debugging:** Configured VS Code `launch.json` to map the custom `miDebuggerPath` for remote debugging.
+* **Terminal Customization:** Installed **Starship** cross-shell prompt with **Nerd Fonts** for git status & error tracking.
+
+### 4. Web NAS (FileBrowser)
+* **Tool:** [FileBrowser](https://filebrowser.org)
+* **Persistence:** Used NSSM (Non-Sucking Service Manager) to run the binary as a background Windows service.
+* **Command:** `.\filebrowser.exe -r "D:\Files" -a 0.0.0.0 -p 8080`
+
+### 5. Server Health Dashboard
+* **Location:** `/dashboard` folder
+* **Features:** Real-time CPU/RAM usage, Service Status checks (SSH & NAS).
+* **Access:** `http://<tailscale-ip>:5000`
+
 ## How to Connect
-- **Coding** : 'Code tunnel' via VS Code Desktop.
-- **Terminal** : ```ssh nas_user@tailscale-ip```
-- **Files** :```http://< tailscale-ip >:8080```
 
+* **Coding (VS Code):** Connect via Remote SSH to `nomad@<tailscale-ip>`
+* **Terminal:** `ssh nomad@<tailscale-ip>`
+* **Files:** `http://<tailscale-ip>:8080`
+* **Dashboard:** `http://<tailscale-ip>:5000`
 
 ## 🗺️ Network Architecture
 
 ```mermaid
 graph TD
     subgraph Home_Network ["🏠 Home Base (Windows PC)"]
-        PC[Host PC]
+        PC[Host PC: KIMMAIN]
         FileBrowser[FileBrowser Service :8080]
         SSH[OpenSSH Server :22]
         Dashboard[Python Dashboard :5000]
-        Tunnel[VS Code Tunnel]
+        DevTools[MSYS2 / GDB / Python]
     end
 
     subgraph Travel_Setup ["✈️ Travel Laptop / iPad"]
@@ -65,29 +78,38 @@ graph TD
     Tailscale <--> Client
     Tailscale <--> Browser
 
-    Client -- "Code (Port 22/Tunnel)" --> Tunnel
-    Browser -- "Files (Port 8080)" --> FileBrowser
-    Browser -- "Stats (Port 5000)" --> Dashboard
-    Client -. "Backup (SSH)" .-> SSH
+    Client -- "Code (SSH Key)" --> SSH
+    Browser -- "Files (HTTP)" --> FileBrowser
+    Browser -- "Stats (HTTP)" --> Dashboard
+    SSH -.-> DevTools
 ```
+## 📝 Notes
+* Tailscale MagicDNS makes remembering IPs unnecessary.
 
-# 📝Notes
-- Tailscale MagicDNS makes remembering IPs unnecessary
-- I have included the ```setup_firewall.ps1``` script in the ```/scripts``` folder to automate the network configuration on new machines .
+* Workspace Trust: Configured VS Code to trust the remote project root to suppress security popups.
 
-# 💻Hardware Specs
+* Formatting: Enabled Format On Save using the Microsoft C/C++ extension.
 
-- **Host Machine**: KIM_MAIN
-- **CPU**: Ryzen 5 5500G
-- **RAM**: 64GB DDR4 (Crucial for Running VS Code Server + NAS)
-- **Storage**: 512GB For OS , 4TB For NAS Storage
+## 💻 Hardware Specs
+Host Machine: KIM_MAIN
 
-- **Client Machine**: Dell XPS 15 / Samsung Tab S9 FE
-- **OS**: Windows 11 / Android
+CPU: Ryzen 5 5500G
 
+RAM: 64GB DDR4 (Crucial for Running VS Code Server + NAS)
 
-## Future RoadMap
-- [x] **Server Health Dashboard**: Built a custom Python/Flask app to monitor CPU/RAM and Service Uptime.
-- [ ] Set up **Wake-On-Lan**(WOL) to turn on the PC on remotely.
-- [ ] add **Docker** to the Host PC for running containers.
-- [ ] Create a backup script to mirror the NAS to Google Drive
+Storage: 512GB (OS), 4TB (NAS Storage)
+
+Client Machine: Dell XPS 15 / Samsung Tab S9 FE
+
+OS: Windows 11 / Android
+
+## Roadmap
+[x] Server Health Dashboard: Built a custom Python/Flask app to monitor CPU/RAM and Service Uptime.
+
+[x] Secure SSH: Implemented Key-based authentication (No Passwords).
+
+[ ] Set up Wake-On-Lan (WOL) to turn on the PC remotely.
+
+[ ] Add Docker to the Host PC for running containers (PostgreSQL, etc.).
+
+[ ] Create a backup script to mirror the NAS to Google Drive.
