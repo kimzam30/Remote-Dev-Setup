@@ -1,115 +1,72 @@
-# Remote-Dev-Setup with Private NAS by kimzam
+# 💻 Portable Remote Development Station
 
-**Remote Programming** With Visual Studio Code (VSC) on a **Private Windows NAS**
+![VS Code](https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![C++](https://img.shields.io/badge/C%2B%2B-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 
-A resilient, secure remote development environment allowing full coding capabilities and NAS access from anywhere in the world, hosted on a Windows machine.
+> A production-ready, containerized Integrated Development Environment (IDE) accessible via any web browser. Designed to standardize tooling across devices and provide seamless access to NAS-hosted projects.
 
-[![Windows](https://img.shields.io/badge/OS-Windows_11-blue?logo=windows)](https://microsoft.com)
-[![Tailscale](https://img.shields.io/badge/Network-Tailscale-orange?logo=tailscale)](https://tailscale.com)
-[![SSH](https://img.shields.io/badge/Access-OpenSSH-black?logo=openssh)](https://www.openssh.com/)
-[![C++](https://img.shields.io/badge/Language-C++-00599C?logo=c%2B%2B)](https://isocpp.org/)
-[![Python](https://img.shields.io/badge/Dashboard-Python_Flask-yellow?logo=python)](https://python.org)
+---
 
-## Architecture
+## 📖 Overview
 
-* **Host Machine:** Windows Desktop (Always ON)
-* **Network:** Tailscale Mesh VPN (Direct P2P Connection)
-* **Primary Code Access:** VS Code Remote SSH (Low Latency)
-* **Backup Access:** VS Code Tunnels (Web-based Fallback)
-* **Development Environment:** * **C++:** MSYS2 / MinGW-w64 (GCC & GDB)
-    * **Terminal:** PowerShell Core + Starship Prompt
-* **File Access:** FileBrowser (Self-hosted web GUI)
+This repository defines a **Development-as-Code** environment. Instead of manually installing compilers and tools on every new laptop or tablet, this setup deploys a fully configured VS Code Server instance inside a Docker container.
 
-## 🛠 Configuration Steps
+It bridges the gap between local comfort and remote power, allowing for:
+* **Consistency:** The exact same GCC version and Python libraries, everywhere.
+* **Portability:** Code from an iPad, a low-power laptop, or a library computer.
+* **Centralization:** All source code and data remain securely stored on the NAS, never synced to temporary devices.
 
-### 1. Network & Security
-* **VPN:** Installed Tailscale for secure, zero-config networking.
-* **Firewall:** Whitelisted Tailscale subnet (`100.x.x.x`) for seamless access.
-* **Performance:** Disabled SMB Multichannel to prevent throttling:
-    `Set-SmbServerConfiguration -Enable Multichannel $false -Force`
+---
 
-### 2. SSH Access (Primary)
-* **Service:** Enabled Windows OpenSSH Server (`sshd`) with automatic startup.
-* **Authentication:** Configured **Ed25519 SSH Keys** for password-less, secure login.
-* **Permissions:** Fixed "Administrators" permission conflicts in `sshd_config` to allow key-based auth.
+## ⚡ Tech Stack & Features
 
-### 3. Development Tools
-* **C++ Toolchain:** Installed **MSYS2 (UCRT64)** to provide `g++` and `gdb` on Windows.
-* **Debugging:** Configured VS Code `launch.json` to map the custom `miDebuggerPath` for remote debugging.
-* **Terminal Customization:** Installed **Starship** cross-shell prompt with **Nerd Fonts** for git status & error tracking.
+| Component | Technology | Description |
+| :--- | :--- | :--- |
+| **Core IDE** | [code-server](https://github.com/coder/code-server) | VS Code running on a remote server, accessible via HTTP. |
+| **Container** | [Docker](https://www.docker.com/) | Isolates the dev environment from the host OS. |
+| **Languages** | Python 3, C++ | Pre-installed compilers (GCC/G++) and interpreters. |
+| **Version Control** | Git | Integrated terminal access for full Git workflows. |
+| **Storage** | Bind Mounts | Direct access to the host's physical project directories. |
 
-### 4. Web NAS (FileBrowser)
-* **Tool:** [FileBrowser](https://filebrowser.org)
-* **Persistence:** Used NSSM (Non-Sucking Service Manager) to run the binary as a background Windows service.
-* **Command:** `.\filebrowser.exe -r "D:\Files" -a 0.0.0.0 -p 8080`
+### 🛠️ Pre-Installed Toolchain
+The container automatically provisions the following tools on startup:
+* **Python 3.x** + `pip`
+* **Build Essentials:** `make`, `gcc`, `g++`, `gdb`
+* **Git** for version control
+* **Sudo** privileges for package management (`apt`)
 
-### 5. Server Health Dashboard
-* **Location:** `/dashboard` folder
-* **Features:** Real-time CPU/RAM usage, Service Status checks (SSH & NAS).
-* **Access:** `http://<tailscale-ip>:5000`
+---
 
-## How to Connect
+## 🚀 Deployment Guide
 
-* **Coding (VS Code):** Connect via Remote SSH to `nomad@<tailscale-ip>`
-* **Terminal:** `ssh nomad@<tailscale-ip>`
-* **Files:** `http://<tailscale-ip>:8080`
-* **Dashboard:** `http://<tailscale-ip>:5000`
+### 1. Prerequisites
+* A server or NAS running **Docker Engine** & **Docker Compose**.
+* (Optional) **Tailscale** for secure remote access without port forwarding.
 
-## 🗺️ Network Architecture
-
-```mermaid
-graph TD
-    subgraph Home_Network ["🏠 Home Base (Windows PC)"]
-        PC[Host PC: KIMMAIN]
-        FileBrowser[FileBrowser Service :8080]
-        SSH[OpenSSH Server :22]
-        Dashboard[Python Dashboard :5000]
-        DevTools[MSYS2 / GDB / Python]
-    end
-
-    subgraph Travel_Setup ["✈️ Travel Laptop / iPad"]
-        Client[VS Code Client]
-        Browser[Web Browser]
-    end
-
-    Tailscale((Tailscale VPN Mesh))
-
-    PC <--> Tailscale
-    Tailscale <--> Client
-    Tailscale <--> Browser
-
-    Client -- "Code (SSH Key)" --> SSH
-    Browser -- "Files (HTTP)" --> FileBrowser
-    Browser -- "Stats (HTTP)" --> Dashboard
-    SSH -.-> DevTools
+### 2. Installation
+Clone the repository to your host machine:
+```bash
+git clone [https://github.com/kimzam30/RemoteDevSetupWithNAS.git](https://github.com/kimzam30/RemoteDevSetupWithNAS.git)
+cd RemoteDevSetupWithNAS
 ```
-## 📝 Notes
-* Tailscale MagicDNS makes remembering IPs unnecessary.
+### 3.Configuration
+Create the environment file. This is critical for security and permissions.
+```bash
+cp .env.example .env
+```
+Open ``` .env``` and cinfigure your settings:
+```
+# User Permissions 
+PUID=1000
+PGID=1000
 
-* Workspace Trust: Configured VS Code to trust the remote project root to suppress security popups.
+#SECURIY
+PASSWORD=urpasswordhere
 
-* Formatting: Enabled Format On Save using the Microsoft C/C++ extension.
+#Host Paths
+PROJECT_ROOT=/home/kimzam30/projects
+```
 
-## 💻 Hardware Specs
-Host Machine: KIM_MAIN
-
-CPU: Ryzen 5 5500G
-
-RAM: 64GB DDR4 (Crucial for Running VS Code Server + NAS)
-
-Storage: 512GB (OS), 4TB (NAS Storage)
-
-Client Machine: Dell XPS 15 / Samsung Tab S9 FE
-
-OS: Windows 11 / Android
-
-## Roadmap
-[x] Server Health Dashboard: Built a custom Python/Flask app to monitor CPU/RAM and Service Uptime.
-
-[x] Secure SSH: Implemented Key-based authentication (No Passwords).
-
-[ ] Set up Wake-On-Lan (WOL) to turn on the PC remotely.
-
-[ ] Add Docker to the Host PC for running containers (PostgreSQL, etc.).
-
-[ ] Create a backup script to mirror the NAS to Google Drive.
