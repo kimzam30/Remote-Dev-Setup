@@ -24,11 +24,13 @@ Setting up a toolchain on every new machine is wasted time, and syncing source c
 
 | Component | Technology | Purpose |
 |---|---|---|
-| IDE | [code-server](https://github.com/coder/code-server) | VS Code served over HTTP |
+| IDE | [code-server](https://github.com/coder/code-server) via [LinuxServer](https://docs.linuxserver.io/images/docker-code-server/) | VS Code served over HTTP |
 | Runtime | Docker | Isolates the environment from the host |
-| Languages | Python 3, C++ | `python3`, `pip`, `gcc`, `g++`, `gdb`, `make` |
+| Languages | Python 3, C++ | Installed by the `Dockerfile` on top of the base image |
 | Storage | Bind mounts | Direct access to project directories on the host |
 | Access | Tailscale | Private mesh networking, no port forwarding |
+
+The base image ships neither Python nor a compiler, so the `Dockerfile` layers on `python3`, `pip`, `venv`, `build-essential`, `gdb`, `make`, and `git`.
 
 ---
 
@@ -67,11 +69,13 @@ TZ=Asia/Kuala_Lumpur
 PROJECTS_ROOT=/home/youruser/projects
 ```
 
-### 3. Launch
+### 3. Build and launch
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
+
+The first run builds the toolchain layer, so it takes a few minutes. Later starts are immediate.
 
 ---
 
@@ -91,10 +95,10 @@ Binding to `0.0.0.0` makes the service reachable on the local network, so it sho
 
 ## Usage
 
-- Projects are mounted at `/home/coder/project` inside the container.
+- Your projects are mounted at **`/config/workspace`**, which opens by default.
 - Open the integrated terminal with `` Ctrl+` `` to run `python3` or `g++` directly.
 - Extensions install from the Open VSX registry — search for "Python" or "C/C++" as usual.
-- Extensions and editor settings persist in `config/code-server/` on the host, so they survive container restarts and image updates.
+- Extensions and editor settings persist in `config/code-server/` on the host, so they survive container restarts and rebuilds.
 
 ---
 
@@ -104,9 +108,10 @@ Binding to `0.0.0.0` makes the service reachable on the local network, so it sho
 Remote-Dev-Setup/
 ├── config/
 │   └── code-server/      # Persisted extensions and user settings
+├── Dockerfile            # Base image + Python and C++ toolchain
+├── docker-compose.yaml   # Service definition
 ├── .env.example          # Configuration template
-├── .gitignore
-└── docker-compose.yaml   # Container definition
+└── .gitignore
 ```
 
 ---
