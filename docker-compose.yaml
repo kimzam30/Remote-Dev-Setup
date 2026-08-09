@@ -1,0 +1,20 @@
+services:
+  code-server:
+    container_name: code-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - PASSWORD=${PASSWORD}
+      - DEFAULT_WORKSPACE=/config/workspace
+    volumes:
+      # Persisted extensions, settings and editor state
+      - ./config/code-server:/config
+      # Your actual source, mounted in from the host
+      - ${PROJECTS_ROOT}:/config/workspace
+    ports:
+      - "8443:8443"
+    restart: unless-stopped

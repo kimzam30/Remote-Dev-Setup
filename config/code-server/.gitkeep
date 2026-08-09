@@ -1,0 +1,2 @@
+# Keeps this directory in git so the compose bind mount resolves to a
+# directory rather than being created as one by the Docker daemon.

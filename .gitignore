@@ -1,0 +1,7 @@
+# Secrets
+.env
+
+# code-server state: extensions, user settings, logs.
+# The directory itself stays tracked so the bind mount resolves.
+config/code-server/*
+!config/code-server/.gitkeep
