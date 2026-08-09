@@ -1,131 +1,116 @@
-# 💻 Portable Remote Development Station
+# Remote Dev Setup
 
-![VS Code](https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![C++](https://img.shields.io/badge/C%2B%2B-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+A containerised VS Code Server environment — a full development machine, reachable from a browser on any device, with your code staying on the NAS instead of on whatever laptop you happen to be holding.
 
-> A production-ready, containerized Integrated Development Environment (IDE) accessible via any web browser. Designed to standardize tooling across devices and provide seamless access to NAS-hosted projects.
-
----
-
-## 📖 Overview
-
-This repository defines a **Development-as-Code** environment. Instead of manually installing compilers and tools on every new laptop or tablet, this setup deploys a fully configured VS Code Server instance inside a Docker container.
-
-It bridges the gap between local comfort and remote power, allowing for:
-* **Consistency:** The exact same GCC version and Python libraries, everywhere.
-* **Portability:** Code from an iPad, a low-power laptop, or a library computer.
-* **Centralization:** All source code and data remain securely stored on the NAS, never synced to temporary devices.
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![VS Code](https://img.shields.io/badge/code--server-007ACC?style=flat-square&logo=visual-studio-code&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
+![C++](https://img.shields.io/badge/C%2B%2B-00599C?style=flat-square&logo=c%2B%2B&logoColor=white)
+![License](https://img.shields.io/github/license/kimzam30/Remote-Dev-Setup?style=flat-square)
 
 ---
 
-## ⚡ Tech Stack & Features
+## Why
 
-| Component | Technology | Description |
-| :--- | :--- | :--- |
-| **Core IDE** | [code-server](https://github.com/coder/code-server) | VS Code running on a remote server, accessible via HTTP. |
-| **Container** | [Docker](https://www.docker.com/) | Isolates the dev environment from the host OS. |
-| **Languages** | Python 3, C++ | Pre-installed compilers (GCC/G++) and interpreters. |
-| **Version Control** | Git | Integrated terminal access for full Git workflows. |
-| **Storage** | Bind Mounts | Direct access to the host's physical project directories. |
+Setting up a toolchain on every new machine is wasted time, and syncing source code onto borrowed or low-power devices is a bad idea. This repo defines the environment once, as code:
 
-### 🛠️ Pre-Installed Toolchain
-The container automatically provisions the following tools on startup:
-* **Python 3.x** + `pip`
-* **Build Essentials:** `make`, `gcc`, `g++`, `gdb`
-* **Git** for version control
-* **Sudo** privileges for package management (`apt`)
+- **Consistent** — the same GCC and Python everywhere, no "works on my laptop".
+- **Portable** — usable from a tablet, an old laptop, or a lab machine; all you need is a browser.
+- **Centralised** — source stays on the NAS and is never copied onto the client device.
 
 ---
 
-## 🚀 Deployment Guide
+## Stack
 
-### 1. Prerequisites
-* A server or NAS running **Docker Engine** & **Docker Compose**.
-* (Optional) **Tailscale** for secure remote access without port forwarding.
+| Component | Technology | Purpose |
+|---|---|---|
+| IDE | [code-server](https://github.com/coder/code-server) | VS Code served over HTTP |
+| Runtime | Docker | Isolates the environment from the host |
+| Languages | Python 3, C++ | `python3`, `pip`, `gcc`, `g++`, `gdb`, `make` |
+| Storage | Bind mounts | Direct access to project directories on the host |
+| Access | Tailscale | Private mesh networking, no port forwarding |
 
-### 2. Installation
-Clone the repository to your host machine:
+---
+
+## Setup
+
+### Prerequisites
+
+- A host or NAS running Docker Engine and Docker Compose v2
+- Tailscale on both the host and the client device (recommended)
+
+### 1. Clone
+
 ```bash
-git clone [https://github.com/kimzam30/RemoteDevSetupWithNAS.git](https://github.com/kimzam30/RemoteDevSetupWithNAS.git)
-cd RemoteDevSetupWithNAS
+git clone https://github.com/kimzam30/Remote-Dev-Setup.git
+cd Remote-Dev-Setup
 ```
-### 3. Configuration
-Create the environment file. This is critical for security and permissions.
-```Bash
+
+### 2. Configure
+
+```bash
 cp .env.example .env
 ```
-Open .env and configure your settings:
-```
-# User Permissions (Run 'id' on host to find these)
+
+```ini
+# Host user — run `id` to find yours
 PUID=1000
 PGID=1000
 
-# Security
-PASSWORD=secure_dev_password
+# Password for the code-server login page
+PASSWORD=change-me
 
-# Host Paths
-PROJECTS_ROOT=/home/kimzam30/projects  # Where your actual code lives
+# Timezone
+TZ=Asia/Kuala_Lumpur
+
+# Where your code actually lives on the host
+PROJECTS_ROOT=/home/youruser/projects
 ```
-### 4. Launch
-Spin up the environment:
+
+### 3. Launch
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
-## 🌐 Secure Remote Access (Tailscale)
 
-This environment is designed to be accessed via **Tailscale**, a private mesh VPN. This allows you to connect securely from anywhere (coffee shop, hotel, etc.) without opening ports on your router.
+---
 
-### How to Connect
-1.  **Host Side:** Ensure Tailscale is running on your NAS/Server.
-    * *Tip:* Run `tailscale ip` on your host to find its private IP (starts with `100.x.x.x`).
-2.  **Client Side:** Install the Tailscale app on your remote device (iPad, Laptop, Phone).
-3.  **Access:** Open your browser and navigate to:
-    ```
-    http://<YOUR-TAILSCALE-IP>:8443
-    ```
-    *(Example: `http://100.86.212.92:8443`)*
+## Remote access over Tailscale
 
-> **Security Note:** Because we bind the service to `0.0.0.0` in Docker, it is technically accessible on your local network too. Using Tailscale ensures you can access it safely even when you are miles away.
+Binding to `0.0.0.0` makes the service reachable on the local network, so it should not be exposed to the internet directly. Tailscale gives you remote access without opening a single port.
 
-## 🖥️ Usage
+1. **On the host** — make sure Tailscale is running, then find its private address:
+   ```bash
+   tailscale ip -4
+   ```
+   It will look like `100.x.x.x`.
+2. **On the client** — install Tailscale and sign in to the same tailnet.
+3. **Connect** — open `http://<tailscale-ip>:8443` and log in with the password from `.env`.
 
-- Access: Navigate to http://<your-server-ip>:8443 in your browser.
-- Login: Enter the password defined in your .env file.
+---
 
-Develop:
+## Usage
 
-- Your project files are available in the /home/coder/project directory.
+- Projects are mounted at `/home/coder/project` inside the container.
+- Open the integrated terminal with `` Ctrl+` `` to run `python3` or `g++` directly.
+- Extensions install from the Open VSX registry — search for "Python" or "C/C++" as usual.
+- Extensions and editor settings persist in `config/code-server/` on the host, so they survive container restarts and image updates.
 
-- Open the integrated terminal (Ctrl+`) to run python or g++ commands.
+---
 
-### **Installing Extensions**
-Extensions install directly from the Open VSX Registry.
-- Python: Search for "Python" and install the Microsoft extension.
-- C++: Search for "C/C++" (IntelliSense).
+## Layout
 
-***Note: Extensions and user settings are persisted in the config/ folder on your host, so they survive container restarts.***
-
-## 📂 Directory Structure
 ```
-RemoteDevSetupWithNAS/
+Remote-Dev-Setup/
 ├── config/
-│   └── code-server/      # Persistent data (Extensions, User Settings)
+│   └── code-server/      # Persisted extensions and user settings
 ├── .env.example          # Configuration template
-├── .gitignore            # Security rules
+├── .gitignore
 └── docker-compose.yaml   # Container definition
 ```
-## 🤝 Contributing
 
-This is a personal development environment, but forks and suggestions are welcome.
+---
 
-1. Fork the Project
-2. Create your Feature Branch (git checkout -b feature/NewTool)
-3. Commit your Changes (git commit -m 'Add Golang support')
-4. Push to the Branch (git push origin feature/NewTool)
-5. Open a Pull Request
-#
-maintained by kimzam
+## License
+
+MIT — see [LICENSE](LICENSE).
